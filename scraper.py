@@ -310,6 +310,18 @@ def main():
             continue
         all_rows.extend(extract_pronoun_rows(pdf_path))
 
+    # Deduplicate: same sentence in the same article is only one row
+    seen = set()
+    deduped = []
+    for row in all_rows:
+        key = (row['Title'], row['Date'], row['Source'], row['Sentence'])
+        if key not in seen:
+            seen.add(key)
+            deduped.append(row)
+    if len(deduped) < len(all_rows):
+        print(f"  Removed {len(all_rows) - len(deduped)} duplicate rows")
+    all_rows = deduped
+
     if not all_rows:
         print("No pronoun occurrences found.")
         return
