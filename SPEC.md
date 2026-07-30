@@ -8,6 +8,17 @@ Research question for later phases: does model surprisal over the event stream
 predict short-horizon realized volatility or liquidity withdrawal?
 
 ## Phase 1 — Parser + book reconstruction (this repo, first milestone)
+- **Split guard (required before any ITCH/BX ingest is written, 2026-07-30).**
+  The BX ITCH days live in the `exchange` repo under a mechanical
+  TRAIN/VAL/TEST split (`exchange/src/dataset.hpp`); TEST is sealed until the
+  one final real-vs-sim comparison. When ITCH day-loading is added here, it
+  MUST take its day list from that header — `#include` it via a symlink or a
+  git submodule of `exchange`, never a transcribed copy that can drift — and
+  call `dataset::enforce(path, override)` before opening any day file, so a
+  TEST day cannot be read without the explicit
+  `--i-am-running-the-final-comparison` flag. One source of truth:
+  `exchange/src/dataset.hpp`. (There is no ITCH loader today; this is a
+  standing requirement, not a description of existing code.)
 - Parse LOBSTER message files (CSV: time, type, order id, size, price, direction).
 - Reconstruct the order book incrementally; maintain best bid/ask at all times.
 - Validate: at every message index, levels 1..K must match LOBSTER's
