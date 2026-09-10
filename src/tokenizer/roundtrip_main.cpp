@@ -1,4 +1,4 @@
-// token_roundtrip, the round-trip validation harness (CLAUDE.md invariant):
+// token_roundtrip, the round-trip validation harness (SPEC.md invariant):
 // tokens -> approximate event -> same buckets.
 //
 // Usage: token_roundtrip <tokens.bin> <manifest.json>

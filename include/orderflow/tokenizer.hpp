@@ -128,7 +128,7 @@ bool encode_event(const ApproxEvent& e, const TickerBins& b, uint16_t out[5]);
 // well-formed (wrong field ranges) or bins are invalid.
 bool decode_event(const uint16_t in[5], const TickerBins& b, ApproxEvent& out);
 
-// The round-trip criterion (CLAUDE.md): tokens -> approximate event ->
+// The round-trip criterion (SPEC.md): tokens -> approximate event ->
 // same tokens. Scalpel's inverse_ok, adapted.
 bool roundtrip_ok(const uint16_t in[5], const TickerBins& b);
 
