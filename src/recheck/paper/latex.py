@@ -263,7 +263,7 @@ def split_rows(body: str) -> list[str]:
                 buf = []
                 i += 2
                 # Consume an optional `[2pt]` spacing argument, but leave any
-                # whitespace alone when there is none — it belongs to the next row.
+                # whitespace alone when there is none, it belongs to the next row.
                 probe = i
                 while probe < len(body) and body[probe] in " \t\n":
                     probe += 1
@@ -413,8 +413,8 @@ def flatten(text: str) -> str:
     characters they render as, and everything left over is dropped. The result
     is what a reader would see, which is what a cell address should contain.
     """
-    # A `\\` still present here is a line break *inside* a cell — row splitting
-    # already consumed the top-level ones — so it renders as a space. Left alone
+    # A `\\` still present here is a line break *inside* a cell, row splitting
+    # already consumed the top-level ones, so it renders as a space. Left alone
     # it lands in the cell address as a literal backslash.
     text = re.sub(r"\\\\|\\newline\b", " ", text)
     text = _PARTIAL_RULE.sub(" ", text)

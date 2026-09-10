@@ -35,7 +35,7 @@ KNOWN_WEIGHTS_MB: dict[str, float] = {
     "t5-large": 2950.0,
 }
 
-#: `pythia-1.4b`, `opt-350m`, `llama-2-7b` — the count is in the name.
+#: `pythia-1.4b`, `opt-350m`, `llama-2-7b`, the count is in the name.
 _PARAMETER_COUNT = re.compile(r"(\d+(?:\.\d+)?)\s*([bm])(?![a-z0-9])", re.IGNORECASE)
 
 #: Two bytes per parameter is fp16, the usual serving precision on the Hub.

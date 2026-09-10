@@ -1,7 +1,7 @@
 # Decisions
 
 Judgment calls made while building recheck, with the reasoning that produced
-them. Reverse any of these freely — they are recorded so the reversal is
+them. Reverse any of these freely, they are recorded so the reversal is
 deliberate.
 
 ## Extraction
@@ -33,7 +33,7 @@ treating the first row as the header.
 
 **A cell is numeric only on a full match.** After stripping units, markers and
 uncertainty, what remains must be entirely a number. Partial matching would
-read `GPT-2-large` as `2` and silently corrupt every comparison downstream —
+read `GPT-2-large` as `2` and silently corrupt every comparison downstream -
 the worst available failure mode, because it produces confident wrong output.
 
 **Emphasis is recorded, not interpreted.** Bold usually means "best in column",
@@ -47,7 +47,7 @@ matches how the markup is actually written.
 
 **User-defined macros are expanded before parsing.** Validating against the
 real *Attention Is All You Need* source showed its column headers were
-`\dmodel` and `\dff` — `\newcommand` shorthands defined in the preamble.
+`\dmodel` and `\dff`, `\newcommand` shorthands defined in the preamble.
 Without expansion those columns had no header at all. `\newcommand` and simple
 `\def` are collected and substituted, bounded to a few passes so a
 self-referential macro degrades instead of hanging. Structural commands
@@ -74,7 +74,7 @@ paper's Table 18. Since the address is the join key *and* what a reader sees,
 that made the tool confidently wrong about which table it was checking.
 
 **A tabular with no data cells is not emitted.** The same sweep found 23 such
-"tables" — instruction excerpts and transcript boxes. They carry nothing
+"tables", instruction excerpts and transcript boxes. They carry nothing
 checkable and every one of them shifted the numbering of the tables after it.
 
 **Unlabelled tables get `table-N`.** Papers cite by number, and a synthetic id
@@ -132,7 +132,7 @@ review artifact. Tests never self-heal.
 `scripts/build_calibration_results.py` reads the garden-path repo read-only and
 recomputes the table's numbers from per-item surprisal data. That validates the
 diff engine against real numbers today, and it is honest about not having
-re-run the models — `run.note` says so in the file itself.
+re-run the models, `run.note` says so in the file itself.
 
 **The paper side of calibration is a transcribed fixture, not real LaTeX.**
 The garden-path paper has no LaTeX source available locally, only a PDF, and
@@ -191,19 +191,19 @@ is a list of names the paper chose (`GPT-2-large`, `Ambiguous`); a repo spells
 the same names in filenames (`surprisal_gpt2-large.csv`) and in categorical
 column values (`condition = ambiguous`). When every name in an address is
 accounted for, the cell gets a recipe. This is checkable, testable, and
-identical between runs — and routing is the layer everything downstream trusts,
+identical between runs, and routing is the layer everything downstream trusts,
 so a stage that silently changed its mind between runs would make every diff
 advisory. `Mapper` is a protocol; a model-backed mapper is additive.
 
 **Not adding the model call yet is the whole reason milestone 2 has a
 regression signal.** NEXT.md flagged mapping as the one stage where a model
-call is appropriate, and it still is — for repos whose structure defeats name
+call is appropriate, and it still is, for repos whose structure defeats name
 alignment. The deterministic mapper routes the calibration paper completely, so
 adding a model now would buy nothing and cost determinism. The seam is the
 protocol; the fallback is what shipped.
 
 **Punctuation between two digits survives normalisation.** `GPT-2-large` and
-`gpt2-large` must match, so punctuation is generally dropped — but that also
+`gpt2-large` must match, so punctuation is generally dropped, but that also
 collapsed `pythia-1.4b` into `pythia-14b`, which are different models. Digit
 boundaries are kept as `.`; everything else is noise. A normal form that
 conflated parameter counts would route a cell to the wrong checkpoint and then
@@ -222,7 +222,7 @@ put all six at the same score. A path literal counts only when a write call
 appears within three lines and no read call appears on the same line.
 
 **A path prefix must not run into a longer name.** Scripts build outputs with
-f-strings, so `produces` matches prefixes — but `phase1_stimuli/surprisal_gpt2-large`
+f-strings, so `produces` matches prefixes, but `phase1_stimuli/surprisal_gpt2-large`
 is a prefix of `…_initial.csv` too. A prefix counts only when the next source
 character cannot continue the name, and only when it reaches past the
 directory, so a bare `phase1_stimuli/` matches nothing.
@@ -238,7 +238,7 @@ print effect-size columns no script writes. Deriving `Δ` from exactly two other
 numeric cells in the same row is safe *because the derivation is written into
 the plan and repeated as a caveat on the cell*. Three sibling columns would
 mean guessing which pair the paper meant, and that is how a report starts
-inventing numbers — so that case fails instead.
+inventing numbers, so that case fails instead.
 
 **A tie between value columns is a failure, not a coin flip.** If two numeric
 columns match the caption equally well, the report says so and names both.
@@ -248,7 +248,7 @@ columns match the caption equally well, the report says so and names both.
 **Static checks, then the budget gate, then the environment, then the run.**
 Static dependency checks are free and produce the most specific code available,
 so they go first. The budget gate goes next because NEXT.md is right that an
-estimate breaching a ceiling must not spend a second proving it — and building
+estimate breaching a ceiling must not spend a second proving it, and building
 an environment is itself a cost. This ordering is why the calibration repo
 reports `MISSING_DEPENDENCY` (minicons is imported and never pinned) *and*
 `BUDGET_EXCEEDED` (5.9 GB of weights against a 512 MB ceiling): both are true,
@@ -256,7 +256,7 @@ both are recorded, the first is what the cells carry.
 
 **A third ceiling, `--max-download-mb`.** Papers fail against three scarcities,
 not two. On a machine with no GPU, `--max-gpu 0` never fires for a CPU-pinned
-scoring script — but six gigabytes of checkpoints is still a refusal worth
+scoring script, but six gigabytes of checkpoints is still a refusal worth
 making, and "gpt2-large is about 3.1 GB and the ceiling is 512 MB" is an
 argument the user can answer by raising the ceiling.
 
@@ -286,14 +286,14 @@ checkable facts; reporting all of them per cell would bury the reason.
 loudly.** The alternative was an all-red calibration report: the garden-path
 repo's scoring script needs 6 GB of weights, so under this session's ceilings
 nothing re-runs. But comparing a paper's printed numbers against what its own
-committed data actually says is a real check that real papers fail — so those
+committed data actually says is a real check that real papers fail, so those
 cells get values, `run.note` states they were aggregated and not re-scored and
 names the blocker, and the report prints that as a `Provenance:` line above the
 tables. `--no-committed-artifacts` turns it off and makes those cells carry the
 blocker instead.
 
 **Provenance lives in `run`, not on each cell.** Per-cell provenance would be
-better, and it is the obvious next schema change — but `schema_version` is part
+better, and it is the obvious next schema change, but `schema_version` is part
 of the extraction goldens, and bumping it to say "this number came from a
 committed file" would have moved five golden files in a milestone whose brief
 was not to perturb extraction at all. `run.entry_points` carries the same fact
@@ -301,7 +301,7 @@ per table, which is the granularity a run actually has.
 
 **`caveats` was added to `ResultCell`; `schema_version` was not bumped.**
 NEXT.md asks that an unseeded stochastic script be run anyway, its value
-reported, and the caveat carried by the status — which the value-xor-failure
+reported, and the caveat carried by the status, which the value-xor-failure
 rule had no room for. `caveats` is an optional, additive field: absent from
 every file written before it existed, ignored by readers that do not know it,
 and rendered into the report's reason column by the ones that do. Within a
@@ -311,9 +311,9 @@ dropping a usable number or moving the goldens.
 **A repo that commits none of its outputs is mapped after running, not before.**
 The mapper needs a file's columns to route a cell to it, so a repo whose CSVs
 only exist post-run has nothing to align against. Entry points therefore get a
-weak, capped signal from their source text — enough to clear the confidence
+weak, capped signal from their source text, enough to clear the confidence
 floor when a script genuinely mentions the table's terms, never enough to
-outrank actually writing the file — and after a successful run the table is
+outrank actually writing the file, and after a successful run the table is
 re-mapped against what now exists.
 
 **`recheck run` no longer exits 3.** Exit 3 meant "the requested stage is not

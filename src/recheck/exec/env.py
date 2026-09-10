@@ -244,7 +244,7 @@ def build(
     if not have("uv"):
         # Reporting success here handed back the operator's own interpreter, so
         # the target repo's code ran inside recheck's venv with none of the
-        # repo's pins — and the report called it an environment.
+        # repo's pins, and the report called it an environment.
         return (
             Environment(
                 source=source,
@@ -286,7 +286,7 @@ def build(
         # A conda environment.yml cannot be reconstructed with pip: conda and
         # PyPI disagree on names for exactly the packages that matter here
         # (conda's "pytorch" is PyPI's "torch"). Translating them would be a
-        # guess, and `uv pip install .` — the old behaviour — installed the repo
+        # guess, and `uv pip install .`, the old behaviour, installed the repo
         # itself rather than its dependencies, then blamed the resolver.
         declared = []
     elif source.kind == EnvKind.PYPROJECT:

@@ -302,11 +302,11 @@ def _run_table(
 
     # 3. Build the environment only for a run that is going to happen. It is
     #    built once per run and reused, so a table reached later may need a
-    #    package an earlier one did not — top up rather than run without it.
+    #    package an earlier one did not, top up rather than run without it.
     # A build that fails must not become the run's environment. It used to be
     # returned alongside the ENV_UNRESOLVABLE blocker and rebound by the caller,
     # so every later table skipped the build, ran against an empty venv, died
-    # with ModuleNotFoundError, and was reported as MISSING_DEPENDENCY — a
+    # with ModuleNotFoundError, and was reported as MISSING_DEPENDENCY, a
     # specific, evidenced, false accusation against the paper's repo for a
     # failure that was ours.
     entering_environment = environment

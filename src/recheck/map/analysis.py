@@ -19,7 +19,7 @@ from .tokens import contained
 #: Shortest literal path fragment we will accept as "this script writes that file".
 MIN_PRODUCER_FRAGMENT = 8
 
-#: `models = ["gpt2-large", ...]`, `MODEL_NAMES = (...)` — how repos say which
+#: `models = ["gpt2-large"...]`, `MODEL_NAMES = (...)`, how repos say which
 #: checkpoints they know how to score.
 _MODEL_LIST = re.compile(
     r"^[ \t]*([A-Za-z_][A-Za-z0-9_]*)\s*[:=]\s*[\[\(]([^\]\)]*)[\]\)]",

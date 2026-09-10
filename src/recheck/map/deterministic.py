@@ -277,7 +277,7 @@ def _score_artifact(
         if match is None and not in_filename:
             # No exact or declared match. A name like `md` may still resolve
             # against qualified values (`bllip-md`), but only once the filters
-            # this cell already established narrow the rows — so defer it.
+            # this cell already established narrow the rows, so defer it.
             deferred.append(name)
 
     for name in deferred:
@@ -378,13 +378,13 @@ def _recipe_for(
 
     # Two files aligning equally well is an ambiguity, not a coin flip. Sorting
     # by path and taking the first silently picked whichever was alphabetically
-    # earlier and reported its number as the paper's — the worst outcome this
+    # earlier and reported its number as the paper's, the worst outcome this
     # tool can produce. Only refuse when the tie is between files that could
     # each actually answer, which the fall-through below establishes.
     tied_top = [item for item in scored if item[0] == scored[0][0]]
 
     # Try candidates best-first. A file can align to a cell's names and still be
-    # unable to answer the question the table asks — a per-model results file
+    # unable to answer the question the table asks, a per-model results file
     # whose only numeric column is an item index, say. That is a reason to fall
     # through to the next candidate, not to give up on the cell.
     last_failure: PlanFailure | None = None
@@ -442,7 +442,7 @@ def _recipe_from_artifact(
     # matched, but a categorical column nothing selected was ignored and the
     # aggregate ran over all of its values.
     #
-    # Collapsing a factor the paper itself collapses is correct — the calibration
+    # Collapsing a factor the paper itself collapses is correct, the calibration
     # table averages over stimulus distance, and so did the paper. What is not
     # correct is mixing a dimension this table *does* distinguish elsewhere: if a
     # sibling cell pins `condition` and this cell does not, averaging over
@@ -580,7 +580,7 @@ def _appears_in_data(names: list[str], inventory: RepoInventory) -> bool:
 
 
 #: Weight per table word a script's *source* mentions, and the most such
-#: evidence can ever contribute. Text overlap is the weakest signal here — it
+#: evidence can ever contribute. Text overlap is the weakest signal here, it
 #: exists so a repo that commits none of its outputs still has somewhere to
 #: start, and it is capped so it can never outrank actually writing the file.
 TEXT_OVERLAP_WEIGHT = 0.25

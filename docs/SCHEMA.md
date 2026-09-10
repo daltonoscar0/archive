@@ -33,7 +33,7 @@ The separator is `" › "` (U+203A with single spaces). Rules:
   ` #3` suffix in document order.
 - `Table N` counts **numbered floats only**, so it matches the paper's own
   numbering. A table typeset outside a float is addressed `Inline table N`
-  in its own sequence — otherwise a paper with sixty layout tabulars would
+  in its own sequence, otherwise a paper with sixty layout tabulars would
   renumber its real tables out from under the reader.
 - A tabular with no data cells is layout, not a table, and is not emitted.
 
@@ -146,7 +146,7 @@ neither is reported as `UNRUNNABLE` / `OTHER` with evidence saying so, because
 silently dropping it would overstate reproduction.
 
 `caveats` is optional and independent of that choice. It holds things that are
-true about a number that was *still produced* — a script that samples
+true about a number that was *still produced*, a script that samples
 randomness without a seed, a column derived by subtraction. A caveat never
 replaces a value; it rides alongside it into the report's reason column, so the
 reader sees both. Codes may appear inside a caveat string
@@ -180,7 +180,7 @@ reader sees both. Codes may appear inside a caveat string
 ]
 ```
 
-`blockers` is a list because more than one thing can be true at once — a script
+`blockers` is a list because more than one thing can be true at once, a script
 can both import a package the repo never pinned *and* need 6 GB of weights.
 The first blocker is the code each affected cell reports; the rest stay on the
 record so nothing checkable is thrown away.
@@ -201,7 +201,7 @@ cells; only the second spent any budget.
 | `BUDGET_EXCEEDED` | Run exceeded the configured compute budget |
 | `ENV_UNRESOLVABLE` | No dependency set satisfies the stated requirements |
 | `SCRIPT_NOT_FOUND` | No script in the repo produces this table |
-| `OTHER` | Outside the taxonomy — **evidence is mandatory** |
+| `OTHER` | Outside the taxonomy, **evidence is mandatory** |
 
 `evidence` should name something checkable: a file and line, a package
 specifier, a resolver error, a measured cost against the budget. Every code
@@ -284,7 +284,7 @@ For a paper value `p`, the band is `max(absolute, |p| × relative)`, where
 
 `--tolerance` takes a bare number (relative) or `rel=…,abs=…,yellow=…`.
 
-Per-table bands come from a TOML config — `--tolerance-config path.toml`, or
+Per-table bands come from a TOML config, `--tolerance-config path.toml`, or
 the nearest `recheck.toml` found by walking up from the paper.json:
 
 ```toml
@@ -299,11 +299,11 @@ relative = 0.005                 # unset fields inherit from [tolerance]
 
 Precedence, strongest first: `--tolerance` on the command line, then
 `[tolerance]` in the config, then the built-in defaults. Per-table entries
-always apply to their own table — an explicit per-table band is more specific
+always apply to their own table, an explicit per-table band is more specific
 than a global flag, so `--tolerance` does not erase it.
 
 See `recheck.toml.example` for a fully commented file.
 
 When the paper reports an uncertainty, a result within ±1 of it is `GREEN`
-regardless of the configured band — the paper's own error bar outranks our
+regardless of the configured band, the paper's own error bar outranks our
 default.

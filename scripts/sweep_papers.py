@@ -34,15 +34,15 @@ from recheck.schema import ADDRESS_SEP, INLINE_LABEL  # noqa: E402
 #: headers, appendix-heavy papers, and papers whose numbers are scientific
 #: notation. Add to it whenever a new paper breaks something.
 DEFAULT_CORPUS = [
-    "1706.03762",  # Attention Is All You Need — macro headers, sci-notation costs
+    "1706.03762",  # Attention Is All You Need, macro headers, sci-notation costs
     "1810.04805",  # BERT
-    "2005.14165",  # GPT-3 — 60+ layout tabulars in the appendix
+    "2005.14165",  # GPT-3, 60+ layout tabulars in the appendix
     "1907.11692",  # RoBERTa
-    "1910.10683",  # T5 — very wide tables
-    "2005.03692",  # SyntaxGym — the calibration paper for the mapper
+    "1910.10683",  # T5, very wide tables
+    "2005.03692",  # SyntaxGym, the calibration paper for the mapper
     "1912.00582",  # BLiMP
     "2104.08691",  # Prompt tuning
-    "2203.02155",  # InstructGPT — instruction boxes typeset as tabulars
+    "2203.02155",  # InstructGPT, instruction boxes typeset as tabulars
     "1802.05365",  # ELMo
     "2212.12131",  # Surprisal and reading times
     "1808.09121",  # Targeted syntactic evaluation

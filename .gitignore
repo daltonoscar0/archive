@@ -10,3 +10,10 @@ build/
 .recheck-work/
 .DS_Store
 .claude/
+CLAUDE.md
+AGENTS.md
+.agentnotes/
+.cursor/
+.mcp.json
+tasks/lessons.md
+tasks/todo.md

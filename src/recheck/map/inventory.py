@@ -192,7 +192,7 @@ def sniff_artifact(path: Path, root: Path) -> TabularArtifact | None:
                 # Keyed on the categorical combination only. Including the
                 # measurement columns made every row distinct, so the cap was
                 # reached on the raw row count and the tail of a long file was
-                # never observed — which is exactly the co-occurrence evidence
+                # never observed, which is exactly the co-occurrence evidence
                 # the mapper uses to resolve a name against qualified values.
                 key = tuple(
                     sorted((c, v) for c, v in cells.items() if not _looks_numeric(v) or not v)

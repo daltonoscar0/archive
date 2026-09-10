@@ -202,7 +202,7 @@ class TestLayoutTabularsAreNotTables:
 
     def test_numbering_does_not_skip(self) -> None:
         # The layout float must not consume "Table 1" and push the real table
-        # to "Table 2" — the address is what a results file joins against.
+        # to "Table 2", the address is what a results file joins against.
         paper = extract_tables(self.LAYOUT)
         assert paper.tables[0].index == 1
         assert all(c.address.startswith("Table 1 ") for c in paper.tables[0].cells)

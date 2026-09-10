@@ -408,7 +408,7 @@ print("wrote", len(frame), "rows")
 
 #: The committed artifact holds values that are deliberately WRONG. If a run
 #: reports the paper's numbers, the only way it could have got them is by
-#: executing the script — falling back to the committed file would produce 0.1.
+#: executing the script, falling back to the committed file would produce 0.1.
 STALE_SCORES_CSV = (
     "model,split,score\n"
     "tiny,dev,0.10\n"
