@@ -1,4 +1,4 @@
-// tokenize — apply a fitted manifest to a LOBSTER message + orderbook pair
+// tokenize, apply a fitted manifest to a LOBSTER message + orderbook pair
 // and emit the binary factored token stream. Pure application layer: this
 // tool cannot fit bins (fitting exists only in tokenizer_fit); it refuses to
 // run without a manifest entry for the ticker.

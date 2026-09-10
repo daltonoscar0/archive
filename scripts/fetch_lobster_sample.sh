@@ -28,7 +28,7 @@ WINDOW="34200000_37800000"   # 09:30-10:30, matches the AAPL sample in data/
 
 # Training-corpus samples: 50-level, 1-hour window.
 # Do NOT add the 30-level samples: AAPL/MSFT/SPY 30-level cover the
-# identical ticker-day-window as the 50-level ones — the same events at
+# identical ticker-day-window as the 50-level ones, the same events at
 # lower depth. Pooling both would duplicate events in the corpus and leak
 # across train/eval splits. (See SPEC.md, Decision B.)
 TICKERS=(AAPL MSFT SPY)

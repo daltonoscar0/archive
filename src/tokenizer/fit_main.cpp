@@ -1,4 +1,4 @@
-// tokenizer_fit — fit per-ticker quantile bins on the TRAINING split of a
+// tokenizer_fit, fit per-ticker quantile bins on the TRAINING split of a
 // LOBSTER message file and write/update the vocab manifest. This is the only
 // program that computes statistics from data; tokenize can only apply a
 // manifest (see fit_core.hpp).
@@ -8,7 +8,7 @@
 //
 // If FILE exists it is loaded and T's entry is replaced; other tickers are
 // preserved. The fit provenance (train split boundary: row index and the
-// timestamps on both sides of it) is recorded in the manifest — that
+// timestamps on both sides of it) is recorded in the manifest, that
 // boundary is what prevents train/eval leakage downstream.
 
 #include <cstdio>

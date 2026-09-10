@@ -37,7 +37,7 @@ inline size_t infer_levels(size_t columns) { return columns / 4; }
 
 // LOBSTER pads unoccupied levels with sentinel prices (+/-9999999999) and
 // size 0; our BookSide::top_n pads with the same constants. Either signal
-// means "no level here" — sentinels must never compare as real prices.
+// means "no level here", sentinels must never compare as real prices.
 inline bool is_empty_level(int64_t price, int64_t size) {
     return size <= 0 || price == kEmptyAskPrice || price == kEmptyBidPrice;
 }
@@ -64,7 +64,7 @@ inline size_t shallowest_mismatch(const Level* asks, const Level* bids,
 }
 
 // Divergence accounting for a full-file scan. A mismatch at a level <= k
-// (the strict depth) is fatal; deeper mismatches are boundary-only warnings —
+// (the strict depth) is fatal; deeper mismatches are boundary-only warnings -
 // LOBSTER only reports events inside its price window, so the deepest visible
 // level can legitimately desynchronize.
 struct DivergenceStats {

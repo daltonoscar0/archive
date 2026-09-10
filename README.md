@@ -31,7 +31,7 @@ ctest --test-dir build
 
 ## Data
 
-Free LOBSTER academic samples, 2012-06-21, 09:30–10:30, 50 levels, for
+Free LOBSTER academic samples, 2012-06-21, 09:30-10:30, 50 levels, for
 AAPL, MSFT, and SPY. Fetch them (with confirmation; orderbook CSVs total
 ~1.7 GB) into `data/lobster/`:
 
@@ -65,7 +65,7 @@ build/tokenize data/lobster/SPY_2012-06-21_34200000_37800000_message_50.csv \
 build/token_roundtrip data/tokens/SPY_50.tokens.bin data/tokens/manifest.json
 ```
 
-Repeat 2–4 for AAPL and MSFT.
+Repeat 2-4 for AAPL and MSFT.
 
 ## Tokenization (v2)
 
@@ -76,7 +76,7 @@ occupied-level index on the event's side of the pre-event book: 0 = at the
 same-side best, +k = k occupied levels strictly better than the price,
 −1 = inside the spread, window −1..+10 plus one positive tail. The negative
 side is a single bucket because, measured across all three tickers, every
-inside-spread event sits at −1 — none reach or cross the opposite best.
+inside-spread event sits at −1, none reach or cross the opposite best.
 
 The training corpus is SPY only (1.15M events, ~5.8M tokens); there is no
 ticker token. AAPL and MSFT are held-out generalization checks
@@ -86,7 +86,7 @@ ticker token. AAPL and MSFT are held-out generalization checks
 
 LOBSTER message files only report events inside the sample's requested
 price window, so a book reconstructed from messages alone drifts from the
-companion orderbook file — worst at the window edge, catastrophic for
+companion orderbook file, worst at the window edge, catastrophic for
 narrow windows (the 10-level full-day AAPL file is 99.2% wrong at level 1).
 Consequences, measured and specced in `SPEC.md`:
 
@@ -98,7 +98,7 @@ Consequences, measured and specced in `SPEC.md`:
   AAPL is mildly contaminated, SPY is ~10% wrong by depth 10. Safe depth
   must be measured per ticker.
 - Phantom reductions (deletes/cancels against orders the message stream
-  never showed us) on the 50-level hour samples: MSFT 5, SPY 36, AAPL 41 —
+  never showed us) on the 50-level hour samples: MSFT 5, SPY 36, AAPL 41 -
   versus 5,423 on the 10-level full-day file.
 - AAPL's depth distribution reaches level 49, the deepest a 50-level file
   can express; its deep tail is truncated by the file's depth and is

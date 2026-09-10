@@ -1,4 +1,4 @@
-// token_roundtrip — the round-trip validation harness (CLAUDE.md invariant):
+// token_roundtrip, the round-trip validation harness (CLAUDE.md invariant):
 // tokens -> approximate event -> same buckets.
 //
 // Usage: token_roundtrip <tokens.bin> <manifest.json>
@@ -6,8 +6,8 @@
 // Two checks, both must pass (exit 0):
 //   1. Exhaustive: every legal 5-token tuple in the vocabulary (including
 //      UNK in the PRICE_OFF slot) decodes and re-encodes to itself.
-//   2. Stream: the file's token stream is well-formed —
-//      BOS SESSION_OPEN (event5 | HALT | RESUME)* SESSION_CLOSE EOS —
+//   2. Stream: the file's token stream is well-formed -
+//      BOS SESSION_OPEN (event5 | HALT | RESUME)* SESSION_CLOSE EOS -
 //      and every event tuple round-trips.
 
 #include <cstdio>

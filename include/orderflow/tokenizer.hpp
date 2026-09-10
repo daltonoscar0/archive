@@ -4,7 +4,7 @@
 // [SIZE][DT], five tokens from a single flat vocabulary with disjoint ID
 // ranges per field. FST-style split, mirroring Scalpel's contract: encoding
 // is a pure application layer (quantize with frozen bin edges, never compute
-// a statistic — fitting lives only in the fit tool), decoding emits a
+// a statistic, fitting lives only in the fit tool), decoding emits a
 // representative event, and roundtrip_ok() is the shared inverse criterion.
 //
 // PRICE_OFF is the signed OCCUPIED-LEVEL index on the event's side, taken
@@ -121,7 +121,7 @@ struct ApproxEvent {
 };
 
 // Encode an event's five tokens. Returns false only for non-event types
-// (Halt) — those become HALT/RESUME specials, not tuples.
+// (Halt), those become HALT/RESUME specials, not tuples.
 bool encode_event(const ApproxEvent& e, const TickerBins& b, uint16_t out[5]);
 
 // Invert five tokens to a representative event. False if the tuple is not
