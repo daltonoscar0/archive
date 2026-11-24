@@ -1,0 +1,14 @@
+build/
+data/lobster/*
+data/itch/*
+!data/lobster/.gitkeep
+!data/itch/.gitkeep
+*.bin
+CLAUDE.md
+AGENTS.md
+.claude/
+.agentnotes/
+.cursor/
+.mcp.json
+tasks/lessons.md
+tasks/todo.md
