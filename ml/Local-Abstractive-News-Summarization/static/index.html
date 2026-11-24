@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<!--
+  index.html — Single-page dashboard for the_mainspring.
+
+  No build step, no frameworks, no external dependencies. Everything is in
+  this one file: HTML structure, CSS styles, and vanilla JavaScript.
+
+  Layout overview:
+    .shell         — CSS grid wrapper: header across the top, sidebar left, main right
+    header         — Logo, dev badge, loading spinner, Debs quote
+    aside          — Sticky sidebar: date picker + per-source filter checkboxes
+    main           — Article list (newspaper column style), count label
+
+  JavaScript overview:
+    init()              — Entry point: set today's date, load sources, load articles
+    loadSources()       — GET /api/sources → populate sidebar checkboxes
+    loadData()          — GET /api/articles?date=... → refresh allArticles array
+    startPoll()         — setInterval(10s) while any article is still summarizing
+    stopPoll()          — clearInterval when all summaries are complete
+    renderArticles()    — Filter by selected sources, interleave by outlet, build cards
+    buildCard()         — Create a single article card DOM element
+    updateSourceCounts()— Update the article count badge next to each source checkbox
+    toggleAllSources()  — Select/deselect all source checkboxes at once
+    formatTime()        — Format an ISO timestamp to "Apr 7, 10:30 AM EST"
+    slugify()           — Convert a source name to a CSS-safe id fragment
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>the mainspring.</title>
+  <style>
+    /* ─── Reset ───────────────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* ─── Design tokens ───────────────────────────────────────────────────── */
+    /* Change these CSS variables to retheme the entire UI. */
+    :root {
+      --bg:      #080606;   /* page background */
+      --bg2:     #0d0a0a;   /* header + sidebar background */
+      --bg3:     #110d0d;   /* input fields + card controls */
+      --border:  #2a1515;   /* subtle dark-red dividers */
+      --red:     #aa2222;   /* accent color: checkboxes, hover, spinners */
+      --text:    #e8e8e8;   /* primary text */
+      --muted:   #777777;   /* secondary text (timestamps, counts) */
+      --dim:     #aaaaaa;   /* summary text */
+      --font:    'Courier New', Courier, monospace;
+      --typewriter: 'Courier New', Courier, monospace;
+    }
+
+    html, body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 16px;
+      line-height: 1.6;
+    }
+
+    a { color: inherit; text-decoration: none; }
+    a:hover { color: var(--red); }
+
+    /* ─── Shell — top-level grid ──────────────────────────────────────────── */
+    /* Two named columns: fixed-width sidebar + flexible main area.
+       Two rows: header spanning both columns, then sidebar | main below. */
+    .shell {
+      display: grid;
+      grid-template-columns: 190px 1fr;
+      grid-template-rows: auto 1fr;
+      grid-template-areas: "header header" "sidebar main";
+      min-height: 100vh;
+    }
+
+    /* ─── Header ──────────────────────────────────────────────────────────── */
+    header {
+      grid-area: header;
+      padding: 22px 28px 18px;
+      border-bottom: 3px solid var(--red);   /* thick red rule — newspaper feel */
+      background: var(--bg2);
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    /* Masthead wordmark */
+    .logo {
+      font-family: var(--typewriter);
+      font-size: 28px;
+      font-weight: bold;
+      color: var(--text);
+      letter-spacing: -0.5px;
+    }
+
+    /* Debs quote pushed to the right */
+    .header-tagline {
+      margin-left: auto;
+      font-family: var(--typewriter);
+      font-size: 12px;
+      color: var(--text);
+      text-align: right;
+      line-height: 1.4;
+    }
+    .header-tagline .quote-attr {
+      display: block;
+      font-size: 11px;
+      color: var(--text);
+    }
+
+    /* "DEV" badge — shown only when DEV_MODE is active on the server */
+    #dev-badge {
+      display: none;   /* toggled to inline by JS when [DEV] summaries are detected */
+      font-size: 11px;
+      color: var(--red);
+      border: 1px solid var(--red);
+      padding: 1px 6px;
+    }
+
+    /* Spinner shown while fetching articles from the API */
+    #loading-indicator {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    #loading-indicator.visible { display: flex; }
+
+    /* CSS-only spinning circle used in the header and on article cards */
+    .spinner {
+      width: 12px; height: 12px;
+      border: 2px solid var(--border);
+      border-top-color: var(--red);   /* only the top arc is red; creates rotation illusion */
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ─── Sidebar ─────────────────────────────────────────────────────────── */
+    /* Sticky so it stays visible while scrolling a long article list. */
+    aside {
+      grid-area: sidebar;
+      background: var(--bg2);
+      border-right: 1px solid var(--border);
+      padding: 24px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+      position: sticky;
+      top: 0;
+      height: calc(100vh - 63px);   /* full viewport minus header height */
+      overflow-y: auto;
+    }
+
+    /* Each labeled section (Date / Sources) in the sidebar */
+    .sidebar-section h3 {
+      font-size: 14px;
+      font-family: var(--font);
+      font-weight: normal;
+      text-transform: none;
+      letter-spacing: 0;
+      color: var(--text);
+      margin-bottom: 12px;
+      padding-bottom: 5px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* Date picker input — styled to match the dark theme */
+    #date-picker {
+      width: 100%;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 6px 8px;
+      font-family: var(--font);
+      font-size: 13px;
+      cursor: pointer;
+    }
+    #date-picker:focus { outline: 1px solid var(--red); }
+
+    /* Source filter list — vertical stack of checkbox rows */
+    .source-list { display: flex; flex-direction: column; gap: 6px; }
+
+    .source-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+    }
+
+    /* Custom checkbox: default is a dark square; checked becomes solid red with a ✓ */
+    .source-item input[type="checkbox"] {
+      appearance: none;
+      width: 13px; height: 13px;
+      border: 1px solid var(--border);
+      background: var(--bg3);
+      cursor: pointer;
+      flex-shrink: 0;
+      position: relative;   /* needed for the ::after checkmark */
+    }
+    .source-item input[type="checkbox"]:checked {
+      background: var(--red);
+      border-color: var(--red);
+    }
+    .source-item input[type="checkbox"]:checked::after {
+      content: '✓';
+      position: absolute;
+      top: -1px; left: 1px;
+      font-size: 10px;
+      color: #fff;
+      line-height: 1;
+    }
+
+    .source-label { font-size: 13px; color: var(--text); }
+    /* Article count badge next to each source name (e.g., "12") */
+    .source-count { margin-left: auto; font-size: 12px; color: var(--muted); }
+
+    /* "select all / deselect all" toggle button */
+    #select-all-btn {
+      font-family: var(--font);
+      font-size: 11px;
+      color: var(--muted);
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0;
+      margin-top: -8px;
+      text-align: left;
+    }
+    #select-all-btn:hover { color: var(--text); }
+
+    /* ─── Main content area ───────────────────────────────────────────────── */
+    main {
+      grid-area: main;
+      padding: 28px 36px;
+    }
+
+    /* "42 articles — filtered" label above the article list */
+    #article-count-label {
+      display: block;
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 20px;
+      letter-spacing: 0.5px;
+    }
+
+    /* ─── Article list — newspaper column style ───────────────────────────── */
+    /* Simple vertical stack; each card is separated by a horizontal rule. */
+    #article-grid {
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* One article card: padding + bottom border to separate entries */
+    .article-card {
+      padding: 20px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .article-card:first-child { border-top: 1px solid var(--border); }
+
+    .card-left { display: flex; flex-direction: column; gap: 7px; }
+
+    /* "Jacobin  ·  Apr 7, 10:30 AM EST" row */
+    .card-byline {
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.5px;
+    }
+    .card-byline .source-name {
+      color: var(--text);
+      font-weight: normal;
+      font-size: 13px;
+    }
+
+    /* Article headline — links to the original article */
+    .card-title {
+      font-size: 18px;
+      font-weight: normal;
+      line-height: 1.25;
+      color: var(--text);
+    }
+    .card-title a:hover { color: var(--red); }
+
+    /* Summary text — dimmer than headline to create visual hierarchy */
+    .card-summary {
+      font-size: 14px;
+      color: var(--dim);
+      line-height: 1.65;
+    }
+
+    /* "Summarizing…" state: inline spinner + muted text */
+    .card-summary.summarizing {
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+    }
+    /* Smaller version of the header spinner used inside article cards */
+    .card-summary.summarizing .mini-spinner {
+      width: 10px; height: 10px;
+      border: 1.5px solid var(--border);
+      border-top-color: var(--red);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      flex-shrink: 0;
+    }
+
+    /* ─── Empty / error state ─────────────────────────────────────────────── */
+    .empty-state {
+      padding: 60px 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 2;
+    }
+
+    /* ─── Scrollbar ───────────────────────────────────────────────────────── */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border); }
+
+    /* ─── Mobile layout ───────────────────────────────────────────────────── */
+    /* On narrow screens, stack sidebar above main instead of side-by-side. */
+    @media (max-width: 600px) {
+      .shell { grid-template-columns: 1fr; grid-template-areas: "header" "sidebar" "main"; }
+      aside { position: static; height: auto; }
+    }
+  </style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- ─── Header ──────────────────────────────────────────────────────────── -->
+  <header>
+    <!-- Masthead wordmark -->
+    <div class="logo">the mainspring.</div>
+
+    <!-- Shown only when the server is running in DEV_MODE (fake summaries) -->
+    <span id="dev-badge">DEV</span>
+
+    <!-- Visible while an /api/articles fetch is in flight -->
+    <div id="loading-indicator"><div class="spinner"></div><span>Loading…</span></div>
+
+    <!-- Eugene V. Debs quote — the inspiration for the app name -->
+    <div class="header-tagline">
+      "Intelligent discontent is the mainspring of civilization."
+      <span class="quote-attr">— Eugene V. Debs</span>
+    </div>
+  </header>
+
+  <!-- ─── Sidebar ─────────────────────────────────────────────────────────── -->
+  <aside>
+    <!-- Date picker: changing this value triggers a fresh loadData() call -->
+    <div class="sidebar-section">
+      <h3>Date</h3>
+      <input type="date" id="date-picker" />
+    </div>
+
+    <!-- Source filter: checkboxes are populated dynamically from /api/sources -->
+    <div class="sidebar-section">
+      <h3>Sources</h3>
+      <button id="select-all-btn" onclick="toggleAllSources()">deselect all</button>
+      <div class="source-list" id="source-list"></div>
+    </div>
+  </aside>
+
+  <!-- ─── Main content ────────────────────────────────────────────────────── -->
+  <main>
+    <!-- "42 articles — filtered" counter, updated by renderArticles() -->
+    <span id="article-count-label"></span>
+
+    <!-- Article cards are injected here by renderArticles() -->
+    <div id="article-grid"></div>
+  </main>
+
+</div>
+
+<!-- ─── JavaScript ──────────────────────────────────────────────────────── -->
+<script>
+  // ---------------------------------------------------------------------------
+  // State
+  // ---------------------------------------------------------------------------
+
+  // Full list of articles for the currently selected date (all sources).
+  let allArticles = [];
+
+  // Set of source names currently selected in the sidebar checkboxes.
+  // Articles from deselected sources are hidden without re-fetching from the API.
+  let selectedSources = new Set();
+
+  // Ordered list of source names from /api/sources (used to build checkboxes).
+  let allSources = [];
+
+  // Auto-polling state: while any article is still being summarized, we poll
+  // the API every 10 seconds and update cards as summaries come in.
+  let pollTimer = null;
+  let pollActive = false;
+
+
+  // ---------------------------------------------------------------------------
+  // Initialization
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Entry point — called once when the page loads.
+   * Sets the date picker to today, wires up the change listener, loads sources,
+   * then loads the initial article data.
+   */
+  async function init() {
+    const today = new Date().toISOString().slice(0, 10);  // "YYYY-MM-DD"
+    document.getElementById('date-picker').value = today;
+
+    // When the user picks a different date, stop any active poll and reload.
+    document.getElementById('date-picker').addEventListener('change', () => {
+      stopPoll();
+      loadData();
+    });
+
+    await loadSources();
+    await loadData();
+  }
+
+
+  // ---------------------------------------------------------------------------
+  // Data loading
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Fetch the list of configured outlets from the API and build sidebar checkboxes.
+   * All sources start selected.
+   */
+  async function loadSources() {
+    try {
+      const j = await fetch('/api/sources').then(r => r.json());
+      allSources = j.sources;
+      selectedSources = new Set(allSources);   // start with everything selected
+      renderSourceList();
+    } catch(e) {
+      console.error('Failed to load sources:', e);
+    }
+  }
+
+  /**
+   * Fetch articles for the currently selected date and re-render the list.
+   * Shows/hides the loading spinner while the request is in flight.
+   * Starts the auto-poll if any articles are still being summarized.
+   */
+  async function loadData() {
+    const date = document.getElementById('date-picker').value;
+    document.getElementById('loading-indicator').classList.add('visible');
+    try {
+      const j = await fetch(`/api/articles?date=${date}`).then(r => r.json());
+
+      // Deduplicate by URL — the API shouldn't return duplicates, but this
+      // guards against any edge cases in the pipeline.
+      const seen = new Set();
+      allArticles = (j.articles || []).filter(a => {
+        if (seen.has(a.url)) return false;
+        seen.add(a.url); return true;
+      });
+
+      // If any summary starts with "[DEV]", the server is in dev mode — show badge.
+      if (allArticles.some(a => a.summary && a.summary.startsWith('[DEV]')))
+        document.getElementById('dev-badge').style.display = 'inline';
+
+      updateSourceCounts();
+      renderArticles();
+
+      // Start polling if any articles don't have a summary yet.
+      if (allArticles.some(a => a.summarizing || (!a.summary && !a.summarizing)))
+        startPoll();
+
+    } catch(e) {
+      document.getElementById('article-grid').innerHTML =
+        `<div class="empty-state">Could not load articles. Is the server running?</div>`;
+    } finally {
+      // Always hide the spinner, even on error.
+      document.getElementById('loading-indicator').classList.remove('visible');
+    }
+  }
+
+
+  // ---------------------------------------------------------------------------
+  // Auto-polling
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Start a 10-second interval that re-fetches articles and updates the UI.
+   * Stops automatically once all articles have summaries.
+   * Only one poll loop runs at a time (guarded by pollActive).
+   */
+  function startPoll() {
+    if (pollActive) return;
+    pollActive = true;
+    pollTimer = setInterval(async () => {
+      const date = document.getElementById('date-picker').value;
+      try {
+        const j = await fetch(`/api/articles?date=${date}`).then(r => r.json());
+        const seen = new Set();
+        allArticles = (j.articles || []).filter(a => {
+          if (seen.has(a.url)) return false;
+          seen.add(a.url); return true;
+        });
+        updateSourceCounts();
+        renderArticles();
+        // Stop polling once every article has a summary (or has definitively failed).
+        if (!allArticles.some(a => a.summarizing || (!a.summary && !a.summarizing)))
+          stopPoll();
+      } catch(_) {
+        // Silently ignore poll errors — the user can see the last good state.
+      }
+    }, 10000);  // 10 seconds
+  }
+
+  /** Cancel the active poll timer and reset state. */
+  function stopPoll() {
+    if (pollTimer) clearInterval(pollTimer);
+    pollActive = false;
+    pollTimer = null;
+  }
+
+
+  // ---------------------------------------------------------------------------
+  // Rendering
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Render the source filter sidebar from the allSources array.
+   * Each source gets a checkbox (pre-checked based on selectedSources) and
+   * a count badge (populated by updateSourceCounts).
+   */
+  function renderSourceList() {
+    const container = document.getElementById('source-list');
+    container.innerHTML = '';
+    allSources.forEach(src => {
+      const item = document.createElement('label');
+      item.className = 'source-item';
+
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.checked = selectedSources.has(src);
+      cb.addEventListener('change', () => {
+        // Add or remove source from the active set, then re-render.
+        if (cb.checked) selectedSources.add(src); else selectedSources.delete(src);
+        renderArticles();
+        updateSelectAllBtn();
+      });
+
+      const label = document.createElement('span');
+      label.className = 'source-label';
+      label.textContent = src;
+
+      // Count badge — id uses slugified source name for reliable DOM lookup.
+      const count = document.createElement('span');
+      count.className = 'source-count';
+      count.id = `count-${slugify(src)}`;
+      count.textContent = '0';
+
+      item.appendChild(cb);
+      item.appendChild(label);
+      item.appendChild(count);
+      container.appendChild(item);
+    });
+  }
+
+  /**
+   * Toggle all source checkboxes on or off.
+   * If all are currently selected, deselect all; otherwise select all.
+   */
+  function toggleAllSources() {
+    if (selectedSources.size === allSources.length) {
+      selectedSources.clear();
+    } else {
+      selectedSources = new Set(allSources);
+    }
+    // Sync checkbox elements to match the new selectedSources state.
+    document.querySelectorAll('#source-list input[type=checkbox]').forEach((cb, i) => {
+      cb.checked = selectedSources.has(allSources[i]);
+    });
+    renderArticles();
+    updateSelectAllBtn();
+  }
+
+  /** Update the "select all / deselect all" button label to reflect current state. */
+  function updateSelectAllBtn() {
+    document.getElementById('select-all-btn').textContent =
+      selectedSources.size === allSources.length ? 'deselect all' : 'select all';
+  }
+
+  /**
+   * Filter allArticles by selectedSources, interleave by outlet, sort by date,
+   * then build and inject article cards into the DOM.
+   *
+   * Interleaving algorithm: articles are sorted newest-first, then pulled one
+   * at a time from the sorted pool, always picking an article from a different
+   * source than the last one added. This prevents one outlet from dominating
+   * the top of the feed. If no article from a different source is available,
+   * it falls back to the next article regardless of source.
+   */
+  function renderArticles() {
+    const grid = document.getElementById('article-grid');
+
+    // Build a date-sorted pool of articles that match the current source filter.
+    const pool = allArticles
+      .filter(a => selectedSources.has(a.source))
+      .sort((a, b) => {
+        const da = a.published_date ? new Date(a.published_date) : new Date(0);
+        const db_ = b.published_date ? new Date(b.published_date) : new Date(0);
+        return db_ - da;  // descending: newest first
+      });
+
+    // Interleave: alternate sources so the feed doesn't clump by outlet.
+    const filtered = [];
+    let lastSource = null;
+    while (pool.length) {
+      // Find the first article from a different source than the previous one.
+      let idx = pool.findIndex(a => a.source !== lastSource);
+      if (idx === -1) idx = 0;  // no different source available — just take next
+      filtered.push(pool.splice(idx, 1)[0]);
+      lastSource = filtered[filtered.length - 1].source;
+    }
+
+    // Update the count label above the article list.
+    document.getElementById('article-count-label').textContent =
+      filtered.length
+        ? `${filtered.length} article${filtered.length !== 1 ? 's' : ''}${selectedSources.size < allSources.length ? ' — filtered' : ''}`
+        : '';
+
+    if (filtered.length === 0) {
+      grid.innerHTML = `<div class="empty-state">No articles found for this date.</div>`;
+      return;
+    }
+
+    // Replace the grid contents with the new card set.
+    grid.innerHTML = '';
+    filtered.forEach(a => grid.appendChild(buildCard(a)));
+  }
+
+  /**
+   * Build a single article card DOM element.
+   *
+   * Card structure:
+   *   .article-card
+   *     .card-left
+   *       .card-byline   — "Jacobin  ·  Apr 7, 10:30 AM EST"
+   *       .card-title    — linked headline
+   *       .card-summary  — BART summary, or a spinner if still summarizing
+   *
+   * @param {Object} a - Article object from the API response.
+   * @returns {HTMLElement}
+   */
+  function buildCard(a) {
+    const card = document.createElement('div');
+    card.className = 'article-card';
+
+    const left = document.createElement('div');
+    left.className = 'card-left';
+
+    // Byline: source name + publication timestamp
+    const byline = document.createElement('div');
+    byline.className = 'card-byline';
+    const srcSpan = document.createElement('span');
+    srcSpan.className = 'source-name';
+    srcSpan.textContent = a.source;
+    byline.appendChild(srcSpan);
+    if (a.published_date) {
+      byline.appendChild(document.createTextNode('  ·  ' + formatTime(a.published_date)));
+    }
+
+    // Headline — opens the original article in a new tab
+    const titleEl = document.createElement('div');
+    titleEl.className = 'card-title';
+    const titleLink = document.createElement('a');
+    titleLink.href = a.url;
+    titleLink.target = '_blank';
+    titleLink.rel = 'noopener noreferrer';  // security: prevents opener access
+    titleLink.textContent = a.title;
+    titleEl.appendChild(titleLink);
+
+    // Summary — either the BART text, or a spinner while the model is working
+    const summaryEl = document.createElement('div');
+    if (a.summarizing || (!a.summary && !a.summarizing)) {
+      // summarizing=true: actively being processed
+      // summarizing=false AND summary=null: queued, not started yet
+      summaryEl.className = 'card-summary summarizing';
+      const s = document.createElement('div');
+      s.className = 'mini-spinner';
+      summaryEl.appendChild(s);
+      summaryEl.appendChild(document.createTextNode('Summarizing…'));
+    } else {
+      summaryEl.className = 'card-summary';
+      summaryEl.textContent = a.summary || '';
+    }
+
+    left.appendChild(byline);
+    left.appendChild(titleEl);
+    left.appendChild(summaryEl);
+    card.appendChild(left);
+    return card;
+  }
+
+  /**
+   * Update the article count badge next to each source checkbox.
+   * Counts are derived from allArticles (unfiltered), so the badges always
+   * reflect the total available for the day regardless of current filter state.
+   */
+  function updateSourceCounts() {
+    const counts = {};
+    allArticles.forEach(a => { counts[a.source] = (counts[a.source] || 0) + 1; });
+    allSources.forEach(src => {
+      const el = document.getElementById(`count-${slugify(src)}`);
+      if (el) el.textContent = counts[src] || 0;
+    });
+  }
+
+
+  // ---------------------------------------------------------------------------
+  // Utilities
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Format an ISO 8601 timestamp into a human-readable string.
+   * Output example: "Apr 7, 10:30 AM EST"
+   * Uses America/New_York timezone for display regardless of the user's locale.
+   *
+   * @param {string} iso - ISO 8601 date string (e.g., "2026-04-07T14:30:00Z")
+   * @returns {string}
+   */
+  function formatTime(iso) {
+    try {
+      const d = new Date(iso);
+      const date = d.toLocaleString('en-US', {
+        timeZone: 'America/New_York',
+        month: 'short',
+        day: 'numeric',
+      });
+      const time = d.toLocaleString('en-US', {
+        timeZone: 'America/New_York',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
+      });
+      return `${date}, ${time} EST`;
+    } catch(_) {
+      return '';
+    }
+  }
+
+  /**
+   * Convert a source name into a CSS-safe id fragment.
+   * Example: "People's World" → "people-s-world"
+   * Used to build unique DOM ids for the per-source count badges.
+   *
+   * @param {string} s - Source name
+   * @returns {string}
+   */
+  function slugify(s) {
+    return s.toLowerCase().replace(/[^a-z0-9]/g, '-');
+  }
+
+
+  // ---------------------------------------------------------------------------
+  // Bootstrap
+  // ---------------------------------------------------------------------------
+
+  // Start everything when the page loads.
+  init();
+</script>
+</body>
+</html>
