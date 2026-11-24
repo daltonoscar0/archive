@@ -1,0 +1,22 @@
+# Cross-cutting build and cache output. This repo holds retired projects, so
+# nothing here needs to ship a build; source and results only.
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+*.egg-info/
+
+# Compiled extensions and objects
+*.so
+*.dylib
+*.o
+*.a
+
+# Rust
+target/
+
+# macOS
+.DS_Store

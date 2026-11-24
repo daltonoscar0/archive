@@ -1,0 +1,10 @@
+# Rust build output. 163 MB of it was committed here by mistake; rebuild with
+# `cargo build --release` / `maturin develop` instead.
+target/
+
+# The compiled PyO3 extension is a build product of src/, not source.
+python/ascii_depth/*.so
+python/ascii_depth/*.pyd
+
+__pycache__/
+*.py[cod]
